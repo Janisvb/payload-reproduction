@@ -12,6 +12,12 @@ export const PostsCollection: CollectionConfig = {
       type: 'text',
     },
     {
+      name: 'authors',
+      type: 'relationship',
+      relationTo: 'users',
+      hasMany: true,
+    },
+    {
       name: 'associatedMedia',
       type: 'upload',
       relationTo: mediaSlug,

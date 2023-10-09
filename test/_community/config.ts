@@ -35,7 +35,7 @@ export default buildConfigWithDefaults({
   },
 
   onInit: async (payload) => {
-    await payload.create({
+    const user = await payload.create({
       collection: 'users',
       data: {
         email: devUser.email,
@@ -43,10 +43,29 @@ export default buildConfigWithDefaults({
       },
     })
 
-    await payload.create({
+    const post = await payload.create({
       collection: postsSlug,
       data: {
         text: 'example post',
+        authors: [user.id],
+      },
+    })
+
+    // not working
+    await payload.update<Post>({
+      collection: postsSlug,
+      id: post.id,
+      data: {
+        authors: [],
+      },
+    })
+
+    // also not working
+    await payload.update<Post>({
+      collection: postsSlug,
+      id: post.id,
+      data: {
+        authors: null,
       },
     })
   },
