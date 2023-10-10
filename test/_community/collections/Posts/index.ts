@@ -1,24 +1,34 @@
 import type { CollectionConfig } from '../../../../packages/payload/src/collections/config/types'
 
-import { mediaSlug } from '../Media'
-
 export const postsSlug = 'posts'
 
 export const PostsCollection: CollectionConfig = {
   slug: postsSlug,
+  versions: false,
   fields: [
     {
-      name: 'text',
-      type: 'text',
+      name: 'category',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { value: 'a', label: 'A' },
+        { value: 'b', label: 'B' },
+      ],
     },
     {
-      name: 'associatedMedia',
-      type: 'upload',
-      relationTo: mediaSlug,
-      access: {
-        create: () => true,
-        update: () => false,
-      },
+      type: 'group',
+      name: 'settings',
+      fields: [
+        {
+          name: 'category',
+          type: 'select',
+          hasMany: true,
+          options: [
+            { value: 'a', label: 'A' },
+            { value: 'b', label: 'B' },
+          ],
+        },
+      ],
     },
   ],
 }
