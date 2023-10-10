@@ -1,7 +1,5 @@
 import type { CollectionConfig } from '../../../../packages/payload/src/collections/config/types'
 
-import { mediaSlug } from '../Media'
-
 export const postsSlug = 'posts'
 
 export const PostsCollection: CollectionConfig = {
@@ -9,16 +7,23 @@ export const PostsCollection: CollectionConfig = {
   fields: [
     {
       name: 'text',
-      type: 'text',
+      type: 'array',
+      fields: [{ type: 'text', name: 'text' }],
     },
     {
-      name: 'associatedMedia',
-      type: 'upload',
-      relationTo: mediaSlug,
-      access: {
-        create: () => true,
-        update: () => false,
-      },
+      type: 'tabs',
+      tabs: [
+        {
+          name: 'Tab',
+          fields: [
+            {
+              name: 'text',
+              type: 'array',
+              fields: [{ type: 'text', name: 'text' }],
+            },
+          ],
+        },
+      ],
     },
   ],
 }
