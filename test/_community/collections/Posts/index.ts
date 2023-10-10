@@ -17,7 +17,7 @@ export const PostsCollection: CollectionConfig = {
       relationTo: mediaSlug,
       access: {
         create: () => true,
-        update: () => false,
+        update: () => true,
       },
     },
   ],
