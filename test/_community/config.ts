@@ -46,7 +46,14 @@ export default buildConfigWithDefaults({
     await payload.create({
       collection: postsSlug,
       data: {
-        text: 'example post',
+        text: 'a',
+      },
+    })
+
+    await payload.create({
+      collection: postsSlug,
+      data: {
+        text: 'b',
       },
     })
   },
