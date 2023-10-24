@@ -9,7 +9,7 @@ export const PostsCollection: CollectionConfig = {
   fields: [
     {
       name: 'text',
-      type: 'text',
+      type: 'json',
     },
     {
       name: 'associatedMedia',

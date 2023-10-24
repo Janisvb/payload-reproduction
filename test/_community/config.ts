@@ -31,8 +31,13 @@ export default buildConfigWithDefaults({
     await payload.create({
       collection: postsSlug,
       data: {
-        text: 'example post',
+        text: [{ type: 'paragraph', content: 'text' }],
       },
+    })
+
+    await payload.create({
+      collection: postsSlug,
+      data: {},
     })
   },
 })
