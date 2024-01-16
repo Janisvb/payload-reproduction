@@ -28,10 +28,18 @@ export default buildConfigWithDefaults({
       },
     })
 
+    const post = await payload.create({
+      collection: postsSlug,
+      data: {
+        text: 'first post',
+      },
+    })
+
     await payload.create({
       collection: postsSlug,
       data: {
-        text: 'example post',
+        text: 'second post',
+        relation: post.id,
       },
     })
   },
