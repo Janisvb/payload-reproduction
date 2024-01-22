@@ -5,7 +5,7 @@ import { APIError } from '../../../../packages/payload/src/errors'
 export const postsSlug = 'posts'
 
 const beforeChangeHook = async ({ data, req, operation, originalDoc }) => {
-  if (!data.text) throw new APIError('api error', 400, null, true) // public error
+  if (!data.text) throw new APIError('error while saving', 400, null, true) // public error
 }
 
 export const PostsCollection: CollectionConfig = {
