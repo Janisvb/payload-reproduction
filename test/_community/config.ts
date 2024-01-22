@@ -19,6 +19,15 @@ export default buildConfigWithDefaults({
     schemaOutputFile: './test/_community/schema.graphql',
   },
 
+  localization: {
+    locales: [
+      { code: 'en', label: 'English' },
+      { code: 'de', label: 'German' },
+    ],
+    defaultLocale: 'en',
+    fallback: true,
+  },
+
   onInit: async (payload) => {
     await payload.create({
       collection: 'users',
@@ -28,13 +37,24 @@ export default buildConfigWithDefaults({
       },
     })
 
-    for (let i = 1; i <= 1000; i++) {
-      await payload.create({
+    for (let i = 1; i <= 100; i++) {
+      const post = await payload.create({
         collection: postsSlug,
         data: {
-          text: 'example post ' + i,
-          _status: 'published',
+          text: 'EN ' + i,
+          date: new Date(),
         },
+        locale: 'en',
+      })
+
+      await payload.update({
+        id: post.id,
+        collection: postsSlug,
+        data: {
+          text: 'DE ' + i,
+          date: new Date(),
+        },
+        locale: 'de',
       })
     }
   },
