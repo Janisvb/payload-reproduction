@@ -30,9 +30,11 @@ export default buildConfigWithDefaults({
 
     await payload.create({
       collection: postsSlug,
-      data: {
-        text: 'example post',
-      },
+      data: { text: 'post', type: 'post', categories: ['js'], categories_text: ['js'] },
+    })
+    await payload.create({
+      collection: postsSlug,
+      data: { text: 'page', type: 'page', categories: ['js', 'ts'], categories_text: ['js', 'ts'] },
     })
   },
 })

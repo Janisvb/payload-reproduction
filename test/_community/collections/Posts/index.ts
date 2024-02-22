@@ -11,13 +11,26 @@ export const PostsCollection: CollectionConfig = {
       type: 'text',
     },
     {
-      name: 'associatedMedia',
-      access: {
-        create: () => true,
-        update: () => false,
-      },
-      relationTo: mediaSlug,
-      type: 'upload',
+      name: 'type',
+      type: 'select',
+      options: [
+        { value: 'page', label: 'Page' },
+        { value: 'post', label: 'Post' },
+      ],
+    },
+    {
+      name: 'categories',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { value: 'js', label: 'JS' },
+        { value: 'ts', label: 'TS' },
+      ],
+    },
+    {
+      name: 'categories_text',
+      type: 'text',
+      hasMany: true,
     },
   ],
   slug: postsSlug,
