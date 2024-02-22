@@ -11,13 +11,9 @@ export const PostsCollection: CollectionConfig = {
       type: 'text',
     },
     {
-      name: 'associatedMedia',
-      access: {
-        create: () => true,
-        update: () => false,
-      },
-      relationTo: mediaSlug,
-      type: 'upload',
+      name: 'text_localized',
+      type: 'text',
+      localized: true,
     },
   ],
   slug: postsSlug,
