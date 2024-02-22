@@ -28,11 +28,13 @@ export default buildConfigWithDefaults({
       },
     })
 
-    await payload.create({
-      collection: postsSlug,
-      data: {
-        text: 'example post',
-      },
-    })
+    for (let i = 0; i < 100; i++) {
+      await payload.create({
+        collection: postsSlug,
+        data: {
+          text: 'example post ' + i,
+        },
+      })
+    }
   },
 })
