@@ -9,15 +9,13 @@ export const PostsCollection: CollectionConfig = {
     {
       name: 'text',
       type: 'text',
+      localized: true,
     },
     {
-      name: 'associatedMedia',
-      access: {
-        create: () => true,
-        update: () => false,
-      },
-      relationTo: mediaSlug,
-      type: 'upload',
+      name: 'author',
+      relationTo: 'users',
+      type: 'relationship',
+      localized: true,
     },
   ],
   slug: postsSlug,
