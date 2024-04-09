@@ -28,11 +28,9 @@ export default buildConfigWithDefaults({
       },
     })
 
-    await payload.create({
-      collection: postsSlug,
-      data: {
-        text: 'example post',
-      },
-    })
+    const post = await payload.create({ collection: postsSlug, data: { text: ['test'] } })
+
+    await payload.update({ collection: postsSlug, id: post.id, data: { text: [] } }) // not working
+    await payload.update({ collection: postsSlug, id: post.id, data: { text: null } }) // not working
   },
 })

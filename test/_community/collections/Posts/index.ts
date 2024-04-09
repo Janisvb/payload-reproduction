@@ -9,6 +9,13 @@ export const PostsCollection: CollectionConfig = {
     {
       name: 'text',
       type: 'text',
+      hasMany: true,
+    },
+    {
+      name: 'childs',
+      type: 'relationship',
+      relationTo: postsSlug,
+      hasMany: true,
     },
     {
       name: 'associatedMedia',
