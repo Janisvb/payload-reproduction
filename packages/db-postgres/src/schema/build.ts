@@ -1,24 +1,20 @@
 /* eslint-disable no-param-reassign */
 import type { Relation } from 'drizzle-orm'
-import type { IndexBuilder, PgColumnBuilder, UniqueConstraintBuilder } from 'drizzle-orm/pg-core'
+import type {
+  IndexBuilder,
+  PgColumnBuilder,
+  PgTableWithColumns,
+  UniqueConstraintBuilder,
+} from 'drizzle-orm/pg-core'
 import type { Field } from 'payload/types'
 
 import { relations } from 'drizzle-orm'
-import {
-  index,
-  integer,
-  numeric,
-  pgTable,
-  serial,
-  timestamp,
-  unique,
-  varchar,
-} from 'drizzle-orm/pg-core'
+import { index, integer, numeric, serial, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
 import { fieldAffectsData } from 'payload/types'
-import toSnakeCase from 'to-snake-case'
 
 import type { GenericColumns, GenericTable, IDType, PostgresAdapter } from '../types'
 
+import { getTableName } from './getTableName'
 import { parentIDColumnMap } from './parentIDColumnMap'
 import { setColumnID } from './setColumnID'
 import { traverseFields } from './traverseFields'
@@ -39,6 +35,7 @@ type Args = {
   rootTableName?: string
   tableName: string
   timestamps?: boolean
+  versions: boolean
 }
 
 type Result = {
@@ -63,6 +60,7 @@ export const buildTable = ({
   rootTableName: incomingRootTableName,
   tableName,
   timestamps,
+  versions,
 }: Args): Result => {
   const rootTableName = incomingRootTableName || tableName
   const columns: Record<string, PgColumnBuilder> = baseColumns
@@ -77,14 +75,14 @@ export const buildTable = ({
 
   const localesColumns: Record<string, PgColumnBuilder> = {}
   const localesIndexes: Record<string, (cols: GenericColumns) => IndexBuilder> = {}
-  let localesTable: GenericTable
-  let textsTable: GenericTable
-  let numbersTable: GenericTable
+  let localesTable: GenericTable | PgTableWithColumns<any>
+  let textsTable: GenericTable | PgTableWithColumns<any>
+  let numbersTable: GenericTable | PgTableWithColumns<any>
 
   // Relationships to the base collection
   const relationships: Set<string> = rootRelationships || new Set()
 
-  let relationshipsTable: GenericTable
+  let relationshipsTable: GenericTable | PgTableWithColumns<any>
 
   // Drizzle relations
   const relationsToBuild: Map<string, string> = new Map()
@@ -117,6 +115,7 @@ export const buildTable = ({
     rootRelationsToBuild: rootRelationsToBuild || relationsToBuild,
     rootTableIDColType: rootTableIDColType || idColType,
     rootTableName,
+    versions,
   }))
 
   if (timestamps) {
@@ -136,7 +135,7 @@ export const buildTable = ({
       .notNull()
   }
 
-  const table = pgTable(tableName, columns, (cols) => {
+  const table = adapter.pgSchema.table(tableName, columns, (cols) => {
     const extraConfig = Object.entries(baseExtraConfig).reduce((config, [key, func]) => {
       config[key] = func(cols)
       return config
@@ -151,14 +150,14 @@ export const buildTable = ({
   adapter.tables[tableName] = table
 
   if (hasLocalizedField) {
-    const localeTableName = `${tableName}_locales`
+    const localeTableName = `${tableName}${adapter.localesSuffix}`
     localesColumns.id = serial('id').primaryKey()
     localesColumns._locale = adapter.enums.enum__locales('_locale').notNull()
     localesColumns._parentID = parentIDColumnMap[idColType]('_parent_id')
       .references(() => table.id, { onDelete: 'cascade' })
       .notNull()
 
-    localesTable = pgTable(localeTableName, localesColumns, (cols) => {
+    localesTable = adapter.pgSchema.table(localeTableName, localesColumns, (cols) => {
       return Object.entries(localesIndexes).reduce(
         (acc, [colName, func]) => {
           acc[colName] = func(cols)
@@ -201,7 +200,7 @@ export const buildTable = ({
       columns.locale = adapter.enums.enum__locales('locale')
     }
 
-    textsTable = pgTable(textsTableName, columns, (cols) => {
+    textsTable = adapter.pgSchema.table(textsTableName, columns, (cols) => {
       const indexes: Record<string, IndexBuilder> = {
         orderParentIdx: index(`${textsTableName}_order_parent_idx`).on(cols.order, cols.parent),
       }
@@ -245,7 +244,7 @@ export const buildTable = ({
       columns.locale = adapter.enums.enum__locales('locale')
     }
 
-    numbersTable = pgTable(numbersTableName, columns, (cols) => {
+    numbersTable = adapter.pgSchema.table(numbersTableName, columns, (cols) => {
       const indexes: Record<string, IndexBuilder> = {
         orderParentIdx: index(`${numbersTableName}_order_parent_idx`).on(cols.order, cols.parent),
       }
@@ -292,11 +291,16 @@ export const buildTable = ({
       }
 
       relationships.forEach((relationTo) => {
-        const formattedRelationTo = toSnakeCase(relationTo)
+        const relationshipConfig = adapter.payload.collections[relationTo].config
+        const formattedRelationTo = getTableName({
+          adapter,
+          config: relationshipConfig,
+          throwValidationError: true,
+        })
         let colType = adapter.idType === 'uuid' ? 'uuid' : 'integer'
-        const relatedCollectionCustomID = adapter.payload.collections[
-          relationTo
-        ].config.fields.find((field) => fieldAffectsData(field) && field.name === 'id')
+        const relatedCollectionCustomID = relationshipConfig.fields.find(
+          (field) => fieldAffectsData(field) && field.name === 'id',
+        )
         if (relatedCollectionCustomID?.type === 'number') colType = 'numeric'
         if (relatedCollectionCustomID?.type === 'text') colType = 'varchar'
 
@@ -305,21 +309,25 @@ export const buildTable = ({
         ).references(() => adapter.tables[formattedRelationTo].id, { onDelete: 'cascade' })
       })
 
-      const relationshipsTableName = `${tableName}_rels`
+      const relationshipsTableName = `${tableName}${adapter.relationshipsSuffix}`
 
-      relationshipsTable = pgTable(relationshipsTableName, relationshipColumns, (cols) => {
-        const result: Record<string, unknown> = {
-          order: index(`${relationshipsTableName}_order_idx`).on(cols.order),
-          parentIdx: index(`${relationshipsTableName}_parent_idx`).on(cols.parent),
-          pathIdx: index(`${relationshipsTableName}_path_idx`).on(cols.path),
-        }
+      relationshipsTable = adapter.pgSchema.table(
+        relationshipsTableName,
+        relationshipColumns,
+        (cols) => {
+          const result: Record<string, unknown> = {
+            order: index(`${relationshipsTableName}_order_idx`).on(cols.order),
+            parentIdx: index(`${relationshipsTableName}_parent_idx`).on(cols.parent),
+            pathIdx: index(`${relationshipsTableName}_path_idx`).on(cols.path),
+          }
 
-        if (hasLocalizedRelationshipField) {
-          result.localeIdx = index(`${relationshipsTableName}_locale_idx`).on(cols.locale)
-        }
+          if (hasLocalizedRelationshipField) {
+            result.localeIdx = index(`${relationshipsTableName}_locale_idx`).on(cols.locale)
+          }
 
-        return result
-      })
+          return result
+        },
+      )
 
       adapter.tables[relationshipsTableName] = relationshipsTable
 
@@ -333,7 +341,11 @@ export const buildTable = ({
         }
 
         relationships.forEach((relationTo) => {
-          const relatedTableName = toSnakeCase(relationTo)
+          const relatedTableName = getTableName({
+            adapter,
+            config: adapter.payload.collections[relationTo].config,
+            throwValidationError: true,
+          })
           const idColumnName = `${relationTo}ID`
           result[idColumnName] = one(adapter.tables[relatedTableName], {
             fields: [relationshipsTable[idColumnName]],
