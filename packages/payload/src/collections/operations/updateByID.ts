@@ -76,6 +76,7 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
       overrideAccess,
       overwriteExistingFiles = false,
       req: {
+        fallbackLocale,
         locale,
         payload: { config },
         payload,
@@ -130,7 +131,9 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
       context: req.context,
       depth: 0,
       doc: docWithLocales,
+      fallbackLocale: null,
       global: null,
+      locale,
       overrideAccess: true,
       req,
       showHiddenFields: true,
@@ -238,7 +241,7 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
       global: null,
       operation: 'update',
       req,
-      skipValidation: shouldSaveDraft || data._status === 'draft',
+      skipValidation: Boolean(collectionConfig.versions?.drafts) && data._status !== 'published',
     })
 
     // /////////////////////////////////////
@@ -297,7 +300,9 @@ async function updateByID<TSlug extends keyof GeneratedTypes['collections']>(
       context: req.context,
       depth,
       doc: result,
+      fallbackLocale,
       global: null,
+      locale,
       overrideAccess,
       req,
       showHiddenFields,

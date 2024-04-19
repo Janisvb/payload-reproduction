@@ -7,7 +7,14 @@ import type {
   Relations,
 } from 'drizzle-orm'
 import type { NodePgDatabase, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres'
-import type { PgColumn, PgEnum, PgTableWithColumns, PgTransaction } from 'drizzle-orm/pg-core'
+import type {
+  PgColumn,
+  PgEnum,
+  PgSchema,
+  PgTableWithColumns,
+  PgTransaction,
+} from 'drizzle-orm/pg-core'
+import type { PgTableFn } from 'drizzle-orm/pg-core/table'
 import type { Payload } from 'payload'
 import type { BaseDatabaseAdapter } from 'payload/database'
 import type { PayloadRequest } from 'payload/types'
@@ -16,11 +23,15 @@ import type { Pool, PoolConfig } from 'pg'
 export type DrizzleDB = NodePgDatabase<Record<string, unknown>>
 
 export type Args = {
+  localesSuffix?: string
   idType?: 'serial' | 'uuid'
   logger?: DrizzleConfig['logger']
   migrationDir?: string
   pool: PoolConfig
   push?: boolean
+  schemaName?: string
+  relationshipsSuffix?: string
+  versionsSuffix?: string
 }
 
 export type GenericColumn = PgColumn<
@@ -50,6 +61,10 @@ export type DrizzleTransaction = PgTransaction<
 >
 
 export type PostgresAdapter = BaseDatabaseAdapter & {
+  /**
+   * Used internally to map the block name to the table name
+   */
+  blockTableNames: Record<string, string>
   drizzle: DrizzleDB
   enums: Record<string, GenericEnum>
   /**
@@ -58,12 +73,16 @@ export type PostgresAdapter = BaseDatabaseAdapter & {
    */
   fieldConstraints: Record<string, Record<string, string>>
   idType: Args['idType']
+  localesSuffix?: string
   logger: DrizzleConfig['logger']
+  pgSchema?: { table: PgTableFn } | PgSchema
   pool: Pool
   poolOptions: Args['pool']
   push: boolean
   relations: Record<string, GenericRelation>
+  relationshipsSuffix?: string
   schema: Record<string, GenericEnum | GenericRelation | GenericTable>
+  schemaName?: Args['schemaName']
   sessions: {
     [id: string]: {
       db: DrizzleTransaction
@@ -71,15 +90,22 @@ export type PostgresAdapter = BaseDatabaseAdapter & {
       resolve: () => Promise<void>
     }
   }
-  tables: Record<string, GenericTable>
+  tables: Record<string, GenericTable | PgTableWithColumns<any>>
+  versionsSuffix?: string
 }
 
 export type IDType = 'integer' | 'numeric' | 'uuid' | 'varchar'
 
 export type PostgresAdapterResult = (args: { payload: Payload }) => PostgresAdapter
 
-export type MigrateUpArgs = { payload: Payload; req?: Partial<PayloadRequest> }
-export type MigrateDownArgs = { payload: Payload; req?: Partial<PayloadRequest> }
+export type MigrateUpArgs = {
+  payload: Payload
+  req?: Partial<PayloadRequest>
+}
+export type MigrateDownArgs = {
+  payload: Payload
+  req?: Partial<PayloadRequest>
+}
 
 declare module 'payload' {
   export interface DatabaseAdapter
@@ -88,9 +114,11 @@ declare module 'payload' {
     drizzle: DrizzleDB
     enums: Record<string, GenericEnum>
     fieldConstraints: Record<string, Record<string, string>>
+    localeSuffix?: string
     pool: Pool
     push: boolean
     relations: Record<string, GenericRelation>
+    relationshipsSuffix?: string
     schema: Record<string, GenericEnum | GenericRelation | GenericTable>
     sessions: {
       [id: string]: {
@@ -100,5 +128,6 @@ declare module 'payload' {
       }
     }
     tables: Record<string, GenericTable>
+    versionsSuffix?: string
   }
 }
